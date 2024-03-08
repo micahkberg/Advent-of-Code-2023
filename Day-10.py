@@ -2,18 +2,17 @@ def load(day):
     contents = open(f"./inputs/{day}.txt", "r").read().strip().split("\n")
     return contents
 
+
 class Tile:
     def __init__(self, symbol):
         self.connections = []
         self.symbol = symbol
 
-    def connectsto(self, coord):
+    def connects_to(self, coord):
         return True if coord in self.connections else False
 
 
 def walk_pipes_from_S(tile_info):
-
-
     # step 0: types of pipes:
     pipe_types = {"|": "NS",
                   "-": "EW",
@@ -43,11 +42,11 @@ def walk_pipes_from_S(tile_info):
     loop_tiles_for_part2 = dict()
     loop_list = []
     while current_pipe != "S":
-        loop_list.append([x, y])
+        loop_list.append((x, y))
         xv, yv = dirs[going]
 
         new_tile = Tile(current_pipe)
-        new_tile.connections.append([x+xv,y+yv])
+        new_tile.connections.append((x+xv,y+yv))
         try:
             new_tile.connections.append(loop_list[-2])
         except:
@@ -73,26 +72,45 @@ def main():
     tiles_enclosed = 0
 
     for y in range(len(tile_info)):
+        directions_of_vertical_pipes = ""
         inside_of_loop = False
-        last_tile = None
+        last_tile_coords = None
         row = tile_info[y]
         for x in range(len(row)):
-            from_pipe = last_tile in loop_tiles.keys()
-            if [x, y] in loop_coords and not from_pipe:
-                inside_of_loop = False if inside_of_loop else True
-                test_print += loop_tiles[(x, y)].symbol
-            elif [x, y] in loop_coords and from_pipe:
-                if not loop_tiles[last_tile].connectsto((x,y)):
-                    inside_of_loop = False if inside_of_loop else True
+            current_tile_coords = (x, y)
+
+            on_pipe = current_tile_coords in loop_coords
+            last_tile_was_pipe = last_tile_coords in loop_coords
+
+            if on_pipe and last_tile_was_pipe:
+                new_pipe = current_tile_coords not in loop_tiles[last_tile_coords].connections
+            elif on_pipe:
+                new_pipe = True
+            else:
+                new_pipe = False
+
+            if new_pipe or (not on_pipe and last_tile_was_pipe):
+                if directions_of_vertical_pipes in ["NS", "SN"]:
+                    inside_of_loop = not inside_of_loop
+                directions_of_vertical_pipes = ""
+
+            if on_pipe:
+                current_tile = loop_tiles[current_tile_coords]
+                if current_tile.symbol in "F7":
+                    directions_of_vertical_pipes += "S"
+                elif current_tile.symbol in "LJ":
+                    directions_of_vertical_pipes += "N"
+                elif current_tile.symbol in "s|":
+                    directions_of_vertical_pipes += "NS"
+
+            if current_tile_coords in loop_coords:
                 test_print += loop_tiles[(x, y)].symbol
             elif inside_of_loop:
                 tiles_enclosed += 1
                 test_print += "I"
-            elif [x,y] in loop_coords:
-                test_print += loop_tiles[(x, y)].symbol
             else:
                 test_print += "O"
-            last_tile = (x, y)
+            last_tile_coords = (x, y)
         test_print += "\n"
     print("number of tiles enclosed or area")
     print(tiles_enclosed)
