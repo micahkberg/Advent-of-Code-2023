@@ -10,7 +10,6 @@ GLOBAL_HIGH_PULSES = 0
 class Module:
     def __init__(self, name, destinations):
         self.destinations = destinations
-        self.inputs = dict()
         self.name = name
 
     def send_low_pulse(self, modules):
@@ -44,12 +43,12 @@ class FlipFlop(Module):
     def pulse(self, pulse, name):
         if pulse:
             return None
-        elif self.state:
-            self.state = False
-            return self.send_low_pulse
-        elif not self.state:
-            self.state = True
-            return self.send_high_pulse
+        else:
+            self.state = not self.state
+            if self.state:
+                return self.send_high_pulse
+            else:
+                return self.send_low_pulse
 
 
 class Conjunction(Module):
@@ -106,7 +105,8 @@ def generate_modules():
         for destination in module.destinations:
             if destination not in modules.keys():
                 modules[destination] = Module(destination, [])
-            modules[destination].inputs[module.name] = False
+            elif type(modules[destination]) == Conjunction:
+                modules[destination].last_pulse[module.name] = False
     return modules
 
 
@@ -115,7 +115,6 @@ def main():
     for _ in range(1000):
         pulses = [modules["button"].press()]
         while len(pulses) > 0:
-            #print(pulses)
             next_pulse = pulses.pop(0)
             if next_pulse:
                 pulses += next_pulse(modules)
