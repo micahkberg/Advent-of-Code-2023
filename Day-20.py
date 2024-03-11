@@ -1,3 +1,5 @@
+import numpy as np
+
 def load(day):
     contents = open(f"./inputs/{day}.txt", "r").read().strip().split("\n")
     return contents
@@ -5,6 +7,8 @@ def load(day):
 
 GLOBAL_LOW_PULSES = 0
 GLOBAL_HIGH_PULSES = 0
+GLOBAL_LCM_DICT = {'bm': None, 'cl': None, 'tn': None, 'dr': None}
+GLOBAL_BUTTON_PRESSES = 0
 
 
 class Module:
@@ -29,7 +33,11 @@ class Module:
         return next_pulses
 
     def pulse(self, pulse, name):
-        if not len(self.destinations):
+        if self.name == 'rx' and not pulse:
+            return "reached_rx_low_pulse"
+        elif self.name == 'rx':
+            return None
+        elif not len(self.destinations):
             return None
         else:
             return AssertionError
@@ -57,8 +65,15 @@ class Conjunction(Module):
         self.last_pulse = dict()
 
     def pulse(self, pulse, name):
+        global GLOBAL_BUTTON_PRESSES
         self.last_pulse[name] = pulse
+        if self.name == "vr":
+            pass
         if False in self.last_pulse.values():
+            if self.name in ["bm", "cl", "tn", "dr"]:
+                if not GLOBAL_LCM_DICT[self.name]:
+                    GLOBAL_LCM_DICT[self.name] = GLOBAL_BUTTON_PRESSES
+                print(f"{self.name}: press {GLOBAL_BUTTON_PRESSES}")
             return self.send_high_pulse
         else:
             return self.send_low_pulse
@@ -111,16 +126,32 @@ def generate_modules():
 
 
 def main():
+    global GLOBAL_BUTTON_PRESSES
     modules = generate_modules()
-    for _ in range(1000):
+    while True:
+        GLOBAL_BUTTON_PRESSES += 1
         pulses = [modules["button"].press()]
         while len(pulses) > 0:
             next_pulse = pulses.pop(0)
+            if next_pulse == "reached_rx_low_pulse":
+                print(f"rx low pulse reached with {GLOBAL_BUTTON_PRESSES} presses")
+                break
             if next_pulse:
                 pulses += next_pulse(modules)
-    print(GLOBAL_LOW_PULSES)
-    print(GLOBAL_HIGH_PULSES)
-    print(GLOBAL_LOW_PULSES*GLOBAL_HIGH_PULSES)
+        if next_pulse == "reached_rx_low_pulse" or None not in GLOBAL_LCM_DICT.values():
+            #print(lcm(list(GLOBAL_LCM_DICT.values())))
+            values = list(GLOBAL_LCM_DICT.values())
+            print('pt 2 product of primes')
+            print(values[0]*values[1]*values[2]*values[3])
+            break
+
+        if GLOBAL_BUTTON_PRESSES == 1000:
+            print(f"low pulses: {GLOBAL_LOW_PULSES}")
+            print(f"high pulses: {GLOBAL_HIGH_PULSES}")
+            print(f"product: {GLOBAL_LOW_PULSES*GLOBAL_HIGH_PULSES}")
+
 
 
 main()
+
+# pt2 73076219, too low
