@@ -16,10 +16,13 @@ class Brick:
         self.max_z = max(zrange)
         self.supporting = []
         self.supported_by = []
+        self.foi = None
         for x in xrange:
             for y in yrange:
                 for z in zrange:
                     self.cubes.add((x, y, z))
+        self.if_exluded_no_path_down = set()
+        self.if_exluded_yes_path_down = set()
 
     def fall_by(self, fall_by):
         new_cubes = set()
@@ -48,11 +51,44 @@ class Brick:
                 return True
         return False
 
-    def try_disintegrating(self):
+    def test_stability(self):
         for brick in self.supporting:
             if len(brick.supported_by) == 1:
                 return 0
         return 1
+
+    def get_field_of_influence(self):
+        if self.foi:
+            return self.foi
+        foi = set()
+        for child in self.supporting:
+            foi.add(child)
+            foi = foi.union(child.get_field_of_influence())
+        self.foi = foi
+        return foi
+
+    def path_to_ground(self, excluding):
+        if excluding in self.if_exluded_yes_path_down:
+            return True
+        if excluding in self.if_exluded_no_path_down:
+            return False
+        if len(self.supported_by) == 0:
+            return True
+        for parent in self.supported_by:
+            if parent != excluding:
+                if parent.path_to_ground(excluding):
+                    self.if_exluded_yes_path_down.add(excluding)
+                    return True
+        self.if_exluded_no_path_down.add(excluding)
+        return False
+
+    def test_chain_reaction(self):
+        field_of_influence = self.get_field_of_influence()
+        blocks_that_would_fall = 0
+        for child in field_of_influence:
+            if not child.path_to_ground(self):
+                blocks_that_would_fall += 1
+        return blocks_that_would_fall
 
 
 def read_bricks():
@@ -125,20 +161,23 @@ def find_all_supports(bricks):
 
 def main():
     bricks = read_bricks()
-    draw_yz_grid(bricks)
+    #draw_yz_grid(bricks)
     print(f"number of bricks: {len(bricks)}")
     print("lowering bricks... quicker?")
     bricks = lower_bricks(bricks)
     bricks = find_all_supports(bricks)
-    draw_yz_grid(bricks)
+    #draw_yz_grid(bricks)
     disintegrate_count = 0
+    number_of_fallen_bricks = 0
     print("testing disintegration")
-    count = 0
+    #i = 0
     for brick in bricks:
-        #print(f"{count} / {len(bricks)}")
-        disintegrate_count += brick.try_disintegrating()
-        count += 1
-    print(disintegrate_count)
+        #i+=1
+        #print(f"{i}/{len(bricks)}")
+        disintegrate_count += brick.test_stability()
+        number_of_fallen_bricks += brick.test_chain_reaction()
+    print(f"part1, bricks that can be disintegrated with stability: {disintegrate_count}")
+    print(f"part2: count of how many fall accross all disintegrations: {number_of_fallen_bricks}")
 
 
 main()
@@ -146,4 +185,8 @@ main()
 # pt 1 1456 too high
 # pt 1 427 too low
 # 468, 475, 491, 487, 1446
+
+# part2 143415: too high
+
+
 
