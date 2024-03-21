@@ -23,6 +23,7 @@ class Brick:
 
     def fall_by(self, fall_by):
         new_cubes = set()
+        self.max_z = 0
         for cube in self.cubes:
             new_cube = (cube[0], cube[1], cube[2]-fall_by)
             self.min_z = min(self.min_z, new_cube[2])
