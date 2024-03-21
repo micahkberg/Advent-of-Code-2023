@@ -1,0 +1,15 @@
+# Configuration file for Pylinter
+[MAIN]
+init-hook="import os, sys; sys.path.append(os.getcwd())"
+
+[BASIC]
+# Good variable names which should always be accepted, separated by a comma.
+good-names=i,
+           j,
+           k,
+           ex,
+           Run,
+           _,
+           x,
+           y,
+           z
