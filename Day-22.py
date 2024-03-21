@@ -1,3 +1,6 @@
+import itertools
+
+
 def load(day):
     contents = open(f"./inputs/{day}.txt", "r").read().strip().split("\n")
     return contents
@@ -16,20 +19,20 @@ class Brick:
         for x in xrange:
             for y in yrange:
                 for z in zrange:
-                    self.cubes.add((x,y,z))
+                    self.cubes.add((x, y, z))
 
-    def go_down(self):
+    def fall_by(self, fall_by):
         new_cubes = set()
         for cube in self.cubes:
-            new_cube = (cube[0],cube[1],cube[2]-1)
+            new_cube = (cube[0], cube[1], cube[2]-fall_by)
             self.min_z = min(self.min_z, new_cube[2])
-            self.max_z = max(self.min_z, new_cube[2])
+            self.max_z = max(self.max_z, new_cube[2])
             new_cubes.add(new_cube)
         self.cubes = new_cubes
 
     def is_on_ground(self):
         for cube in self.cubes:
-            if cube[2]==1:
+            if cube[2] == 1:
                 return True
         return False
 
@@ -39,14 +42,12 @@ class Brick:
         if self.min_z != other_brick.max_z + 1:
             return False
         for cube in self.cubes:
-            cube_below = (cube[0],cube[1],cube[2]-1)
+            cube_below = (cube[0], cube[1], cube[2]-1)
             if cube_below in other_brick.cubes:
-                self.supported_by.append(other_brick)
-                other_brick.supporting.append(self)
                 return True
         return False
 
-    def try_disintegrating(self, bricks):
+    def try_disintegrating(self):
         for brick in self.supporting:
             if len(brick.supported_by) == 1:
                 return 0
@@ -64,39 +65,22 @@ def read_bricks():
     return bricks
 
 
-def sort_bricks_into_grounded_and_falling(grounded_bricks, falling_bricks):
-    newly_grounded_count = 1
-    while newly_grounded_count > 0:
-        newly_grounded_count = 0
-        to_fall = []
-        for brick in falling_bricks:
-            brick_falling = True
-            if brick.is_on_ground():
-                grounded_bricks.append(brick)
-                newly_grounded_count += 1
-                brick_falling = False
-            else:
-                for ground_brick in grounded_bricks:
-                    if brick.is_on_other_brick(ground_brick):
-                        if brick_falling:
-                            newly_grounded_count += 1
-                            grounded_bricks.append(brick)
-                            brick_falling = False
-            if brick_falling:
-                to_fall.append(brick)
-        falling_bricks = to_fall
-    return grounded_bricks, falling_bricks
-
-
 def lower_bricks(bricks):
     # figure out starting condition of bricks
-    grounded_bricks = []
-    grounded_bricks, bricks_to_fall = sort_bricks_into_grounded_and_falling(grounded_bricks, bricks)
-    while len(bricks_to_fall) > 0:
-        print(str(100*len(bricks_to_fall)/len(bricks))[:5]+"%")
-        for brick in bricks_to_fall:
-            brick.go_down()
-        grounded_bricks, bricks_to_fall = sort_bricks_into_grounded_and_falling(grounded_bricks, bricks_to_fall)
+    bricks = sorted(bricks, key=lambda k: k.min_z)
+    highest = dict()
+    for x in range(10):
+        for y in range(10):
+            highest[(x, y)] = 0
+
+    for brick in bricks:
+        distance_to_fall = brick.min_z - 1
+        for cube in brick.cubes:
+            x, y, z = cube
+            distance_to_fall = min(distance_to_fall, z-highest[(x, y)]-1)
+        brick.fall_by(distance_to_fall)
+        for cube in brick.cubes:
+            highest[(cube[0], cube[1])] = max(highest[(cube[0], cube[1])], cube[2])
     return bricks
 
 
@@ -118,7 +102,7 @@ def draw_yz_grid(bricks):
                 if not empty:
                     break
                 for cube in brick.cubes:
-                    if cube[1]==y and cube[2]==z:
+                    if cube[1] == y and cube[2] == z:
                         empty = False
                         break
             if empty:
@@ -129,24 +113,36 @@ def draw_yz_grid(bricks):
     print(output)
 
 
+def find_all_supports(bricks):
+    for pair in itertools.permutations(bricks, 2):
+        brick1, brick2 = pair
+        if brick1.is_on_other_brick(brick2):
+            brick1.supported_by.append(brick2)
+            brick2.supporting.append(brick1)
+    return bricks
+
+
 def main():
     bricks = read_bricks()
     draw_yz_grid(bricks)
-    print(len(bricks))
-    print("lowering bricks... slowly")
+    print(f"number of bricks: {len(bricks)}")
+    print("lowering bricks... quicker?")
     bricks = lower_bricks(bricks)
+    bricks = find_all_supports(bricks)
     draw_yz_grid(bricks)
     disintegrate_count = 0
     print("testing disintegration")
     count = 0
     for brick in bricks:
-        print(f"{count} / {len(bricks)}")
-        disintegrate_count += brick.try_disintegrating(bricks)
-        count+=1
+        #print(f"{count} / {len(bricks)}")
+        disintegrate_count += brick.try_disintegrating()
+        count += 1
     print(disintegrate_count)
+
 
 main()
 
 # pt 1 1456 too high
-# pt 2 427 too low
-# 468 someone elses lol
+# pt 1 427 too low
+# 468, 475, 491, 487, 1446
+
